@@ -1,2 +1,1 @@
-# SiGG-Transaction-notification-service
-SiGG-Transaction-notification-service
+SiGG-Push-notifications-Backend
