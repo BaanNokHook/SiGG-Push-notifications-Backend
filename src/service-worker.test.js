@@ -12,7 +12,7 @@ let listeners = {};
 let shownNotifications = [];
 let openedWindows = [];
 let clients = [];
-let now;
+let now;     
 
 beforeEach(() => {
   listeners = {};
@@ -100,16 +100,18 @@ test('SG should show notification when it comes from Pusher', () => {
   // Then a notification should be shown
   expect(shownNotifications).toHaveLength(1);
   expect(shownNotifications[0]).toEqual({
-    title: TEST_NOTIFICATION_TITLE,
+    title: TEST_NOTIFICATION_TITLE,    
     options: {
       icon: TEST_NOTIFICATION_ICON,
-      body: TEST_NOTIFICATION_BODY,
+      body: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
+      // body: TEST_NOTIFICATION_BODY,
       data: {
         pusher: {
           customerPayload: {
             notification: {
               title: TEST_NOTIFICATION_TITLE,
-              body: TEST_NOTIFICATION_BODY,
+              body: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
+              // body: TEST_NOTIFICATION_BODY,
               icon: TEST_NOTIFICATION_ICON,
             },
             data: {},
@@ -177,7 +179,8 @@ test('SG should pass correct params to onNotificationReceived', () => {
   expect(onNotificationReceivedParams.payload).toEqual({
     notification: {
       title: TEST_NOTIFICATION_TITLE,
-      body: TEST_NOTIFICATION_BODY,
+      body: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
+      // body: TEST_NOTIFICATION_BODY,
       icon: TEST_NOTIFICATION_ICON,
     },
     data: {}, // Pusher namespace should be stripped
