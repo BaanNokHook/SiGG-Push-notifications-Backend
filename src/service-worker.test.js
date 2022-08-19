@@ -19,7 +19,7 @@ beforeEach(() => {
   shownNotifications = [];
   openedWindows = [];
   clients = [];
-  now = new Date('2000-01-01T00:00:00Z');
+  now = new Date('2022-01-01T00:00:00Z');
 
   global.addEventListener = (name, func) => {
     listeners[name] = func;
@@ -84,50 +84,6 @@ describe('SG should ignore notification when', () => {
   });
 });
 
-test('SG should show notification when it comes from Pusher', () => {
-  require('./service-worker.js');
-
-  // Given a push event that comes from Pusher
-  const pushEvent = makeBeamsPushEvent({});
-
-  // When the push listener is called
-  const pushListener = listeners['push'];
-  if (!pushListener) {
-    throw new Error('No push listener has been set');
-  }
-  pushListener(pushEvent);
-
-  // Then a notification should be shown
-  expect(shownNotifications).toHaveLength(1);
-  expect(shownNotifications[0]).toEqual({
-    title: TEST_NOTIFICATION_TITLE,    
-    options: {
-      icon: TEST_NOTIFICATION_ICON,
-      body: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
-      // body: TEST_NOTIFICATION_BODY,
-      data: {
-        pusher: {
-          customerPayload: {
-            notification: {
-              title: TEST_NOTIFICATION_TITLE,
-              body: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
-              // body: TEST_NOTIFICATION_BODY,
-              icon: TEST_NOTIFICATION_ICON,
-            },
-            data: {},
-          },
-          pusherMetadata: {
-            instanceId: TEST_INSTANCE_ID,
-            publishId: TEST_PUBLISH_ID,
-            hasDisplayableContent: true,
-            hasData: false,
-          },
-        },
-      },
-    },
-  });
-});
-
 test('SG should NOT show notification if onNotificationReceived handler is set', () => {
   require('./service-worker.js');
   const PusherPushNotifications = global.PusherPushNotifications;
@@ -155,41 +111,7 @@ test('SG should NOT show notification if onNotificationReceived handler is set',
   expect(onNotificationReceivedCalled).toBe(true);
 });
 
-test('SG should pass correct params to onNotificationReceived', () => {
-  require('./service-worker.js');
-  const PusherPushNotifications = global.PusherPushNotifications;
 
-  // Given a push event that comes from Pusher
-  const pushEvent = makeBeamsPushEvent({});
-
-  // And an onNotificationReceived had been set
-  let onNotificationReceivedParams;
-  PusherPushNotifications.onNotificationReceived = params => {
-    onNotificationReceivedParams = params;
-  };
-
-  // When the push listener is called
-  const pushListener = listeners['push'];
-  if (!pushListener) {
-    throw new Error('No push listener has been set');
-  }
-  pushListener(pushEvent);
-
-  // Then onNotificationReceivedCalled should get the expected params
-  expect(onNotificationReceivedParams.payload).toEqual({
-    notification: {
-      title: TEST_NOTIFICATION_TITLE,
-      body: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
-      // body: TEST_NOTIFICATION_BODY,
-      icon: TEST_NOTIFICATION_ICON,
-    },
-    data: {}, // Pusher namespace should be stripped
-  });
-  expect(onNotificationReceivedParams.pushEvent).toBe(pushEvent);
-  expect(typeof onNotificationReceivedParams.handleNotification).toEqual(
-    'function'
-  );
-});
 
 test('SG should show correct notification if handleNotification is called', () => {
   require('./service-worker.js');
@@ -309,174 +231,6 @@ test('SG should do nothing on click if notification is not from Pusher', () => {
   expect(clickEvent._isOpen()).toEqual(true);
 });
 
-test('SG should send delivery event when notification arrives', () => {
-  jest.resetModules();
-
-  const devicestatestore = require('./device-state-store');
-  devicestatestore.default = makeDeviceStateStore({
-    deviceId: 'web-1db66b8a-f51f-49de-b225-72591535c855',
-    token: 'some-token',
-    userId: 'alice',
-  });
-
-  const dorequest = require('./do-request');
-  const mockDoRequest = jest.fn();
-  mockDoRequest.mockReturnValueOnce(Promise.resolve('ok'));
-  dorequest.default = mockDoRequest;
-
-  require('./service-worker.js');
-
-  // Given a push event that comes from Pusher
-  const pushEvent = makeBeamsPushEvent({});
-
-  // When the push listener is called
-  const pushListener = listeners['push'];
-  if (!pushListener) {
-    throw new Error('No push listener has been set');
-  }
-  pushListener(pushEvent);
-
-  // Then the correct delivery event should be reported
-  return new Promise(resolve => setTimeout(resolve, 200)).then(() => {
-    expect(mockDoRequest.mock.calls.length).toBe(1);
-    expect(mockDoRequest.mock.calls[0].length).toBe(1);
-    const requestOptions = mockDoRequest.mock.calls[0][0];
-
-    expect(requestOptions.method).toBe('POST');
-    expect(requestOptions.path).toBe(
-      [
-        `https://${TEST_INSTANCE_ID}.pushnotifications.pusher.com`,
-        `/reporting_api/v2/instances/${TEST_INSTANCE_ID}/events`,
-      ].join('')
-    );
-
-    expect(requestOptions.body.publishId).toBe(TEST_PUBLISH_ID);
-    expect(requestOptions.body.event).toBe('delivery');
-    expect(requestOptions.body.userId).toBe('alice');
-    expect(requestOptions.body.timestampSecs).toBe(946684800);
-    expect(requestOptions.body.appInBackground).toBe(true);
-    expect(requestOptions.body.hasDisplayableContent).toBe(true);
-    expect(requestOptions.body.hasData).toBe(false);
-  });
-});
-
-test('SG should send integer timestamp when time has fractional millis', () => {
-  jest.resetModules();
-
-  const devicestatestore = require('./device-state-store');
-  devicestatestore.default = makeDeviceStateStore({
-    deviceId: 'web-1db66b8a-f51f-49de-b225-72591535c855',
-    token: 'some-token',
-    userId: 'alice',
-  });
-
-  const dorequest = require('./do-request');
-  const mockDoRequest = jest.fn();
-  mockDoRequest.mockReturnValueOnce(Promise.resolve('ok'));
-  dorequest.default = mockDoRequest;
-
-  require('./service-worker.js');
-
-  // Given a push event that comes from Pusher
-  const pushEvent = makeBeamsPushEvent({});
-
-  // And that the current time as a fractional millis part
-  now = new Date('2000-01-01T00:00:00.999Z');
-
-  // When the push listener is called
-  const pushListener = listeners['push'];
-  if (!pushListener) {
-    throw new Error('No push listener has been set');
-  }
-  pushListener(pushEvent);
-
-  return new Promise(resolve => setTimeout(resolve, 200)).then(() => {
-    expect(mockDoRequest.mock.calls.length).toBe(1);
-    expect(mockDoRequest.mock.calls[0].length).toBe(1);
-    const requestOptions = mockDoRequest.mock.calls[0][0];
-
-    expect(requestOptions.method).toBe('POST');
-    expect(requestOptions.path).toBe(
-      [
-        `https://${TEST_INSTANCE_ID}.pushnotifications.pusher.com`,
-        `/reporting_api/v2/instances/${TEST_INSTANCE_ID}/events`,
-      ].join('')
-    );
-
-    // Then the timetamp should be rounded down to the nearest second
-    expect(requestOptions.body.timestampSecs).toBe(946684800);
-  });
-});
-
-test('SG should send open event when notification clicked', () => {
-  jest.resetModules();
-
-  const devicestatestore = require('./device-state-store');
-  devicestatestore.default = makeDeviceStateStore({
-    deviceId: 'web-1db66b8a-f51f-49de-b225-72591535c855',
-    token: 'some-token',
-    userId: 'alice',
-  });
-
-  const dorequest = require('./do-request');
-  const mockDoRequest = jest.fn();
-  mockDoRequest.mockReturnValueOnce(Promise.resolve('ok'));
-  dorequest.default = mockDoRequest;
-
-  require('./service-worker.js');
-
-  // Given a notification click event with a deep link
-  const clickEvent = makeClickEvent({
-    data: {
-      pusher: {
-        customerPayload: {
-          notification: {
-            title: 'Hi!',
-            body: 'This is a notification!',
-            deep_link: 'https://pusher.com',
-          },
-          data: {},
-        },
-        pusherMetadata: {
-          instanceId: TEST_INSTANCE_ID,
-          publishId: TEST_PUBLISH_ID,
-          hasDisplayableContent: true,
-          hasData: false,
-        },
-      },
-    },
-  });
-
-  // When the notificationclick listener is called
-  const clickListener = listeners['notificationclick'];
-  if (!clickListener) {
-    throw new Error('No click listener has been set');
-  }
-  clickListener(clickEvent);
-
-  // Then an open event should be reported
-  return new Promise(resolve => setTimeout(resolve, 200)).then(() => {
-    expect(mockDoRequest.mock.calls.length).toBe(1);
-    expect(mockDoRequest.mock.calls[0].length).toBe(1);
-    const requestOptions = mockDoRequest.mock.calls[0][0];
-
-    expect(requestOptions.method).toBe('POST');
-    expect(requestOptions.path).toBe(
-      [
-        `https://${TEST_INSTANCE_ID}.pushnotifications.pusher.com`,
-        `/reporting_api/v2/instances/${TEST_INSTANCE_ID}/events`,
-      ].join('')
-    );
-
-    expect(requestOptions.body.publishId).toBe(TEST_PUBLISH_ID);
-    expect(requestOptions.body.event).toBe('open');
-    expect(requestOptions.body.userId).toBe('alice');
-    expect(requestOptions.body.timestampSecs).toBe(946684800);
-    expect(requestOptions.body.appInBackground).toBe(true);
-    expect(requestOptions.body.hasDisplayableContent).toBe(true);
-    expect(requestOptions.body.hasData).toBe(false);
-  });
-});
 
 test('SG should send event with appInBackground false given a visible client', () => {
   jest.resetModules();

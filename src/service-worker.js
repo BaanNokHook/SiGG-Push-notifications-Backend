@@ -1,4 +1,3 @@
-/* eslint-env serviceworker */
 import doRequest from './do-request';
 import DeviceStateStore from './device-state-store';
 
