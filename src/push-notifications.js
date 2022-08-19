@@ -511,9 +511,7 @@ function urlBase64ToUInt8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
-/**
- * Modified from https://stackoverflow.com/questions/4565112
- */
+
 function isSupportedBrowser() {
   const winNav = window.navigator;
   const vendorName = winNav.vendor;
